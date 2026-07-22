@@ -1,0 +1,6 @@
+{
+  "name": "Real Estate Admin Dashboard",
+  "description": "A premium SaaS admin dashboard for managing properties, rentals, and administrative settings with localization and interactive analytics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
