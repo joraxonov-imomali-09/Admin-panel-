@@ -144,6 +144,16 @@ export const i18n = {
     invitationSentTo: 'Invitation sent to',
     accountCreated: 'Account created.',
 
+    // Change Password Missing Keys
+    passwordsDoNotMatch: 'Passwords do not match',
+    passwordTooShort: 'Password must be at least 6 characters',
+    invalidCurrentPassword: 'Invalid current password',
+    passwordUpdated: 'Password updated successfully!',
+    changeGlobalPassword: 'Change Global Password',
+    changePasswordWarning: 'This will change the password for the entire Admin Panel.',
+    confirmNewPassword: 'Confirm New Password',
+    updatePassword: 'Update Password',
+
     // Settings
     language: 'Language',
     theme: 'Theme',
@@ -374,6 +384,16 @@ export const i18n = {
     invitationSentTo: 'Taklif yuborildi',
     accountCreated: 'Hisob yaratildi.',
 
+    // Change Password Missing Keys
+    passwordsDoNotMatch: 'Parollar mos kelmadi',
+    passwordTooShort: 'Parol kamida 6 ta belgidan iborat boʻlishi kerak',
+    invalidCurrentPassword: 'Hozirgi parol notoʻgʻri',
+    passwordUpdated: 'Parol muvaffaqiyatli yangilandi!',
+    changeGlobalPassword: 'Global Parolni Oʻzgartirish',
+    changePasswordWarning: 'Bu butun Boshqaruv Panelining parolini oʻzgartiradi.',
+    confirmNewPassword: 'Yangi Parolni Tasdiqlash',
+    updatePassword: 'Parolni Yangilash',
+
     // Settings
     language: 'Til',
     theme: 'Mavzu',
@@ -603,6 +623,16 @@ export const i18n = {
     operationFailed: 'Операция не выполнена',
     invitationSentTo: 'Приглашение отправлено на',
     accountCreated: 'Аккаунт создан.',
+
+    // Change Password Missing Keys
+    passwordsDoNotMatch: 'Пароли не совпадают',
+    passwordTooShort: 'Пароль должен содержать минимум 6 символов',
+    invalidCurrentPassword: 'Неверный текущий пароль',
+    passwordUpdated: 'Пароль успешно обновлён!',
+    changeGlobalPassword: 'Сменить Глобальный Пароль',
+    changePasswordWarning: 'Это изменит пароль для всей Панели Управления.',
+    confirmNewPassword: 'Подтвердите Новый Пароль',
+    updatePassword: 'Обновить Пароль',
 
     // Settings
     language: 'Язык',

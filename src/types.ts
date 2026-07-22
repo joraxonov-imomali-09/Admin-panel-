@@ -32,6 +32,8 @@ export interface Property {
   isFeatured: boolean;
   images: string[];
   views: number;
+  category: 'house' | 'apartment';
+  features: string[];
   createdDate: string; // ISO String
 }
 
@@ -62,6 +64,8 @@ export interface RentalProperty {
   isFeatured: boolean;
   images: string[];
   views: number;
+  category: 'house' | 'apartment';
+  features: string[];
   createdDate: string;
 }
 

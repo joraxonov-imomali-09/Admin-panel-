@@ -194,7 +194,8 @@ export default function App() {
         try {
           const { data, error } = await supabase
             .from('properties')
-            .select('*');
+            .select('*')
+            .order('created_at', { ascending: false });
 
           if (error) {
             console.error('Error fetching properties:', error);
@@ -231,11 +232,17 @@ export default function App() {
                   : typeof item.images === 'string'
                   ? JSON.parse(item.images)
                   : [],
+                features: Array.isArray(item.features)
+                  ? item.features
+                  : typeof item.features === 'string'
+                  ? JSON.parse(item.features)
+                  : [],
                 views: Number(item.views) || 0,
+                category: item.category || 'house',
                 createdDate: item.createdDate || item.created_at || new Date().toISOString(),
               };
 
-              if (item.listing_type === 'rent' || item.listingType === 'rent') {
+              if (item.category === 'apartment') {
                 rentals.push(formatted as RentalProperty);
               } else {
                 sales.push(formatted as Property);
@@ -284,37 +291,97 @@ export default function App() {
     try {
       const isNew = String(formData.id).startsWith('prop-');
       const { id, ...dataToSave } = formData;
-      const listingType = activeTab;
+      const category = activeTab === 'rent' ? 'apartment' : 'house';
 
-      let savedData;
+      // Map camelCase to snake_case for Supabase
+      const dbPayload = {
+        title: dataToSave.title,
+        description: dataToSave.description,
+        price: dataToSave.price,
+        currency: dataToSave.currency,
+        city: dataToSave.city,
+        district: dataToSave.district,
+        full_address: dataToSave.fullAddress,
+        google_maps_link: dataToSave.googleMapsLink,
+        property_type: dataToSave.propertyType,
+        rooms: dataToSave.rooms,
+        bathrooms: dataToSave.bathrooms,
+        area: dataToSave.area,
+        floor: dataToSave.floor,
+        total_floors: dataToSave.totalFloors,
+        parking: dataToSave.parking,
+        furniture: dataToSave.furniture,
+        construction_year: dataToSave.constructionYear,
+        phone_number: dataToSave.phoneNumber,
+        telegram_username: dataToSave.telegramUsername,
+        status: dataToSave.status,
+        is_featured: dataToSave.isFeatured,
+        images: dataToSave.images,
+        features: dataToSave.features,
+        views: dataToSave.views,
+        category: category,
+      };
+
+      let dbResult;
 
       if (isNew) {
         const { data, error } = await supabase
           .from('properties')
-          .insert([{ ...dataToSave, listing_type: listingType }])
+          .insert([dbPayload])
           .select()
           .single();
 
         if (error) throw error;
-        savedData = data;
+        dbResult = data;
       } else {
         const { data, error } = await supabase
           .from('properties')
-          .update({ ...dataToSave, listing_type: listingType })
+          .update(dbPayload)
           .eq('id', id)
           .select()
           .single();
 
         if (error) throw error;
-        savedData = data;
+        dbResult = data;
       }
+
+      // Map snake_case back to camelCase for UI state
+      const savedData = {
+        id: String(dbResult.id),
+        title: dbResult.title || '',
+        description: dbResult.description || '',
+        price: Number(dbResult.price) || 0,
+        currency: dbResult.currency || 'USD',
+        city: dbResult.city || '',
+        district: dbResult.district || '',
+        fullAddress: dbResult.full_address || '',
+        googleMapsLink: dbResult.google_maps_link || '',
+        propertyType: dbResult.property_type || 'Apartment',
+        rooms: Number(dbResult.rooms) || 0,
+        bathrooms: Number(dbResult.bathrooms) || 0,
+        area: Number(dbResult.area) || 0,
+        floor: Number(dbResult.floor) || 0,
+        totalFloors: Number(dbResult.total_floors) || 0,
+        parking: Boolean(dbResult.parking),
+        furniture: Boolean(dbResult.furniture),
+        constructionYear: Number(dbResult.construction_year) || 2023,
+        phoneNumber: dbResult.phone_number || '',
+        telegramUsername: dbResult.telegram_username || '',
+        status: dbResult.status || 'Active',
+        isFeatured: Boolean(dbResult.is_featured),
+        images: Array.isArray(dbResult.images) ? dbResult.images : [],
+        features: Array.isArray(dbResult.features) ? dbResult.features : [],
+        views: Number(dbResult.views) || 0,
+        category: dbResult.category || 'house',
+        createdDate: dbResult.created_at || new Date().toISOString(),
+      };
 
       if (activeTab === 'sale') {
         if (!isNew) {
-          setSalesProperties((prev) => prev.map((p) => (p.id === savedData.id ? savedData : p)));
+          setSalesProperties((prev) => prev.map((p) => (p.id === savedData.id ? (savedData as any) : p)));
           triggerToast(t.successUpdate, 'success');
         } else {
-          setSalesProperties((prev) => [savedData, ...prev]);
+          setSalesProperties((prev) => [(savedData as any), ...prev]);
           triggerToast(t.successCreate, 'success');
         }
 
@@ -328,10 +395,10 @@ export default function App() {
         setActivities((prev) => [newAct, ...prev]);
       } else if (activeTab === 'rent') {
         if (!isNew) {
-          setRentalProperties((prev) => prev.map((p) => (p.id === savedData.id ? savedData : p)));
+          setRentalProperties((prev) => prev.map((p) => (p.id === savedData.id ? (savedData as any) : p)));
           triggerToast(t.successUpdate, 'success');
         } else {
-          setRentalProperties((prev) => [savedData, ...prev]);
+          setRentalProperties((prev) => [(savedData as any), ...prev]);
           triggerToast(t.successCreate, 'success');
         }
 
@@ -436,7 +503,7 @@ export default function App() {
       title: `${prop.title} (Copy)`,
       views: 0,
       createdDate: new Date().toISOString(),
-      listing_type: activeTab,
+      category: activeTab === 'rent' ? 'apartment' : 'house',
     };
 
     try {
@@ -499,12 +566,12 @@ export default function App() {
 
     try {
       const { error: uploadError } = await supabase.storage
-        .from('properties')
+        .from('uylar')
         .upload(fileName, file);
 
       if (uploadError) throw uploadError;
 
-      const { data } = supabase.storage.from('properties').getPublicUrl(fileName);
+      const { data } = supabase.storage.from('uylar').getPublicUrl(fileName);
       const newAvatarUrl = data.publicUrl;
       setProfileAvatarUrl(newAvatarUrl);
 
@@ -1112,6 +1179,7 @@ export default function App() {
         onSave={handleSaveProperty}
         editingProperty={editingProperty}
         mode={activeTab === 'rent' ? 'rent' : 'sale'}
+        triggerToast={triggerToast}
       />
 
       {/* PROPERTY PREVIEW MODAL */}
@@ -1200,6 +1268,20 @@ export default function App() {
                       {previewProperty.description || t.noDescription}
                     </p>
                   </div>
+
+                  {/* Features */}
+                  {previewProperty.features && previewProperty.features.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Features</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {previewProperty.features.map((feature, idx) => (
+                          <span key={idx} className="px-2 py-1 bg-[#D4AF37]/10 text-[#D4AF37] rounded-lg text-[10px] font-bold uppercase tracking-wider">
+                            {feature}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Address */}
                   <div className="mt-4">

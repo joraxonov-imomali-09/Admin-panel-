@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   X,
@@ -16,6 +16,7 @@ import {
   Phone,
   Send,
   Building,
+  AlertCircle,
 } from 'lucide-react';
 import { Property, RentalProperty, LanguageType, CurrencyType, PropertyStatus, RentalStatus } from '../types';
 import { i18n } from '../i18n';
@@ -26,10 +27,118 @@ interface PropertyFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (data: any) => void;
-  editingProperty: any | null; // If null, we are creating a new property
+  editingProperty: any | null;
   mode: 'sale' | 'rent';
+  triggerToast: (text: string, type: 'success' | 'info' | 'alert') => void;
 }
 
+// ─── Image Compression ──────────────────────────────────────────────────────
+// Uses the browser's native Canvas API — zero extra dependencies.
+async function compressImage(file: File, maxDimension = 1920, quality = 0.82): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+
+      let { width, height } = img;
+      if (width > maxDimension || height > maxDimension) {
+        if (width >= height) {
+          height = Math.round((height / width) * maxDimension);
+          width = maxDimension;
+        } else {
+          width = Math.round((width / height) * maxDimension);
+          height = maxDimension;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error('Canvas toBlob failed'));
+        },
+        'image/jpeg',
+        quality
+      );
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Image load failed'));
+    };
+
+    img.src = objectUrl;
+  });
+}
+
+// ─── Circular Progress Ring ──────────────────────────────────────────────────
+interface CircularProgressProps {
+  progress: number; // 0–100
+  size?: number;
+}
+
+function CircularProgress({ progress, size = 72 }: CircularProgressProps) {
+  const strokeWidth = 5;
+  const radius = (size - strokeWidth * 2) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const offset = circumference - (progress / 100) * circumference;
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg
+          width={size}
+          height={size}
+          style={{ transform: 'rotate(-90deg)' }}
+        >
+          {/* Track */}
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke="rgba(212,175,55,0.15)"
+            strokeWidth={strokeWidth}
+          />
+          {/* Progress arc */}
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke="#D4AF37"
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            style={{ transition: 'stroke-dashoffset 0.25s cubic-bezier(0.4,0,0.2,1)' }}
+          />
+        </svg>
+        {/* Percentage label in centre */}
+        <div
+          className="absolute inset-0 flex items-center justify-center"
+          style={{ top: 0 }}
+        >
+          <span className="font-mono font-black text-[#D4AF37]" style={{ fontSize: size * 0.22 }}>
+            {Math.round(progress)}%
+          </span>
+        </div>
+      </div>
+      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+        Uploading…
+      </p>
+    </div>
+  );
+}
+
+// ─── Main Component ──────────────────────────────────────────────────────────
 export default function PropertyFormModal({
   lang,
   isOpen,
@@ -37,87 +146,48 @@ export default function PropertyFormModal({
   onSave,
   editingProperty,
   mode,
+  triggerToast,
 }: PropertyFormModalProps) {
   const t = i18n[lang];
 
   // Form Fields
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
   const [price, setPrice] = useState<number | ''>('');
-  const [currency, setCurrency] = useState<CurrencyType>('USD');
-  const [city, setCity] = useState('Tashkent');
-  const [district, setDistrict] = useState('Mirabad');
   const [fullAddress, setFullAddress] = useState('');
-  const [googleMapsLink, setGoogleMapsLink] = useState('');
-  const [propertyType, setPropertyType] = useState('Apartment');
-  const [rooms, setRooms] = useState<number>(2);
-  const [bathrooms, setBathrooms] = useState<number>(1);
-  const [area, setArea] = useState<number | ''>('');
-  const [floor, setFloor] = useState<number>(3);
-  const [totalFloors, setTotalFloors] = useState<number>(9);
-  const [parking, setParking] = useState(false);
-  const [furniture, setFurniture] = useState(false);
-  const [constructionYear, setConstructionYear] = useState<number>(2023);
-  const [phoneNumber, setPhoneNumber] = useState('+998 ');
-  const [telegramUsername, setTelegramUsername] = useState('@');
-  const [status, setStatus] = useState<string>('Active');
-  const [isFeatured, setIsFeatured] = useState(false);
+  const [rooms, setRooms] = useState<number | ''>('');
+  const [floor, setFloor] = useState<number | ''>('');
+  const [totalFloors, setTotalFloors] = useState<number | ''>('');
+  const [features, setFeatures] = useState<string[]>([]);
+  const [featureInput, setFeatureInput] = useState('');
 
   // Images State
   const [images, setImages] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   // Prefill Form when editing
   useEffect(() => {
     if (editingProperty) {
-      setTitle(editingProperty.title || '');
-      setDescription(editingProperty.description || '');
       setPrice(editingProperty.price || '');
-      setCurrency(editingProperty.currency || 'USD');
-      setCity(editingProperty.city || 'Tashkent');
-      setDistrict(editingProperty.district || 'Mirabad');
       setFullAddress(editingProperty.fullAddress || '');
-      setGoogleMapsLink(editingProperty.googleMapsLink || '');
-      setPropertyType(editingProperty.propertyType || 'Apartment');
-      setRooms(editingProperty.rooms || 2);
-      setBathrooms(editingProperty.bathrooms || 1);
-      setArea(editingProperty.area || '');
-      setFloor(editingProperty.floor || 1);
-      setTotalFloors(editingProperty.totalFloors || 5);
-      setParking(editingProperty.parking || false);
-      setFurniture(editingProperty.furniture || false);
-      setConstructionYear(editingProperty.constructionYear || 2023);
-      setPhoneNumber(editingProperty.phoneNumber || '+998 ');
-      setTelegramUsername(editingProperty.telegramUsername || '@');
-      setStatus(editingProperty.status || 'Active');
-      setIsFeatured(editingProperty.isFeatured || false);
+      setRooms(editingProperty.rooms || '');
+      setFloor(editingProperty.floor || '');
+      setTotalFloors(editingProperty.totalFloors || '');
+      setFeatures(editingProperty.features || []);
       setImages(editingProperty.images || []);
     } else {
       // Reset to defaults
-      setTitle('');
-      setDescription('');
       setPrice('');
-      setCurrency('USD');
-      setCity('Tashkent');
-      setDistrict('Mirabad');
       setFullAddress('');
-      setGoogleMapsLink('');
-      setPropertyType('Apartment');
-      setRooms(2);
-      setBathrooms(1);
-      setArea('');
-      setFloor(3);
-      setTotalFloors(9);
-      setParking(false);
-      setFurniture(false);
-      setConstructionYear(2023);
-      setPhoneNumber('+998 ');
-      setTelegramUsername('@');
-      setStatus('Active');
-      setIsFeatured(false);
+      setRooms('');
+      setFloor('');
+      setTotalFloors('');
+      setFeatures([]);
       setImages([]);
     }
+    setUploadError(null);
+    setUploadProgress(0);
   }, [editingProperty, isOpen, mode]);
 
   // Handle Drag Events
@@ -133,41 +203,113 @@ export default function PropertyFormModal({
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const triggerImageUpload = () => {
-    fileInputRef.current?.click();
+    if (!isUploading) fileInputRef.current?.click();
   };
 
-  const uploadFiles = async (files: FileList | File[]) => {
+  // ─── Upload with compression + progress ─────────────────────────────────
+  const uploadFiles = useCallback(async (files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+    if (fileArray.length === 0) return;
+
     setIsUploading(true);
-    try {
-      const uploadPromises = Array.from(files).map(async (file) => {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-        const filePath = `${fileName}`;
+    setUploadProgress(0);
+    setUploadError(null);
+    setIsDragging(false);
 
-        const { error: uploadError } = await supabase.storage
-          .from('properties')
-          .upload(filePath, file);
+    const collectedUrls: string[] = [];
+    const errors: string[] = [];
 
-        if (uploadError) {
-          console.error('Error uploading file:', uploadError);
-          return null;
+    for (let i = 0; i < fileArray.length; i++) {
+      const file = fileArray[i];
+
+      // Update progress per file start (base progress before this file)
+      const baseProgress = (i / fileArray.length) * 100;
+      setUploadProgress(baseProgress);
+
+      try {
+        // 1. Compress image
+        let blob: Blob;
+        try {
+          blob = await compressImage(file);
+        } catch {
+          // If compression fails (e.g. unsupported format), use original
+          blob = file;
         }
 
-        const { data } = supabase.storage.from('properties').getPublicUrl(filePath);
-        return data.publicUrl;
-      });
+        const fileExt = file.name.split('.').pop() || 'jpg';
+        const fileName = `prop-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
 
-      const uploadedUrls = await Promise.all(uploadPromises);
-      const validUrls = uploadedUrls.filter((url) => url !== null) as string[];
-      
-      setImages((prev) => [...prev, ...validUrls]);
-    } catch (error) {
-      console.error('Upload failed:', error);
-    } finally {
-      setIsUploading(false);
-      setIsDragging(false);
+        // 2. Upload via XHR so we can track progress
+        const url = await new Promise<string>((resolve, reject) => {
+          // Get the Supabase storage URL and auth headers
+          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+          const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+          const bucketName = mode === 'sale' ? 'uylar' : 'Kvartiralar';
+          const uploadUrl = `${supabaseUrl}/storage/v1/object/${bucketName}/${fileName}`;
+
+          const xhr = new XMLHttpRequest();
+          xhr.open('POST', uploadUrl);
+          xhr.setRequestHeader('Authorization', `Bearer ${supabaseKey}`);
+          xhr.setRequestHeader('apikey', supabaseKey);
+          xhr.setRequestHeader('x-upsert', 'false');
+
+          // Progress per-file: maps 0–100% of this file to its slice of total
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const fileProgress = (event.loaded / event.total) * 100;
+              const totalProgress = baseProgress + (fileProgress / fileArray.length);
+              setUploadProgress(Math.min(totalProgress, 99));
+            }
+          };
+
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              // Construct the public URL the same way supabase client does
+              const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucketName}/${fileName}`;
+              resolve(publicUrl);
+            } else {
+              let errMsg = `Upload failed (${xhr.status})`;
+              try {
+                const parsed = JSON.parse(xhr.responseText);
+                if (parsed.error) errMsg = parsed.error;
+              } catch {}
+              reject(new Error(errMsg));
+            }
+          };
+
+          xhr.onerror = () => reject(new Error('Network error during upload'));
+          xhr.ontimeout = () => reject(new Error('Upload timed out'));
+          xhr.timeout = 60000; // 60 second timeout
+
+          const formData = new FormData();
+          formData.append('', blob, fileName);
+          xhr.send(formData);
+        });
+
+        collectedUrls.push(url);
+      } catch (err: any) {
+        console.error(`Failed to upload ${file.name}:`, err);
+        errors.push(`${file.name}: ${err.message || 'Upload failed'}`);
+      }
     }
-  };
+
+    // Finish
+    setUploadProgress(100);
+
+    // Small delay so user sees 100% before the ring disappears
+    await new Promise((r) => setTimeout(r, 400));
+
+    if (collectedUrls.length > 0) {
+      setImages((prev) => [...prev, ...collectedUrls]);
+    }
+
+    if (errors.length > 0) {
+      setUploadError(errors.join(' | '));
+    }
+
+    setIsUploading(false);
+    setUploadProgress(0);
+  }, []);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -180,11 +322,13 @@ export default function PropertyFormModal({
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       uploadFiles(e.target.files);
+      // Reset input so same file can be re-selected
+      e.target.value = '';
     }
   };
 
   const removeImage = (index: number) => {
-    setImages(prev => prev.filter((_, idx) => idx !== index));
+    setImages((prev) => prev.filter((_, idx) => idx !== index));
   };
 
   const reorderImage = (index: number, direction: 'left' | 'right') => {
@@ -200,35 +344,49 @@ export default function PropertyFormModal({
   };
 
   // Submit Handler
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title || !price || !area) return;
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!price || !fullAddress || !rooms) {
+      triggerToast(t.fillRequiredFields || 'Please fill in all required fields.', 'alert');
+      return;
+    }
+
+    if (mode === 'rent' && (!floor || !totalFloors)) {
+      triggerToast('Please provide Floor and Total Floors for apartments.', 'alert');
+      return;
+    }
+
+    if (images.length === 0) {
+      triggerToast('Please upload at least one image.', 'alert');
+      return;
+    }
 
     const finalData = {
       id: editingProperty?.id || `prop-${mode}-${Date.now()}`,
-      title,
-      description,
+      title: fullAddress, // fallback for title
+      description: '',
       price: Number(price),
-      currency,
-      city,
-      district,
+      currency: 'USD' as any,
+      city: 'Tashkent', // fallback
+      district: 'Tashkent', // fallback
       fullAddress,
-      googleMapsLink,
-      propertyType,
-      rooms,
-      bathrooms,
-      area: Number(area),
-      floor,
-      totalFloors,
-      parking,
-      furniture,
-      constructionYear,
-      phoneNumber,
-      telegramUsername,
-      status: status as any,
-      isFeatured,
+      googleMapsLink: '',
+      propertyType: mode === 'rent' ? 'Apartment' : 'House',
+      rooms: Number(rooms),
+      bathrooms: 1,
+      area: 0,
+      floor: Number(floor) || 0,
+      totalFloors: Number(totalFloors) || 0,
+      parking: false,
+      furniture: false,
+      constructionYear: new Date().getFullYear(),
+      phoneNumber: '',
+      telegramUsername: '',
+      status: 'Active' as any,
+      isFeatured: false,
       images: images,
-      views: editingProperty?.views || Math.floor(Math.random() * 200),
+      features: features,
+      views: editingProperty?.views || 0,
       createdDate: editingProperty?.createdDate || new Date().toISOString(),
     };
 
@@ -279,38 +437,37 @@ export default function PropertyFormModal({
 
             {/* Scrollable Form Area */}
             <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 space-y-8">
-              {/* Image Upload Block */}
+              {/* ── Image Upload Block ────────────────────────────────────── */}
               <div className="space-y-3">
                 <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500">
                   {t.imageUpload}
                 </h4>
 
-                <input 
-                  type="file" 
-                  multiple 
-                  ref={fileInputRef} 
-                  onChange={handleFileSelect} 
-                  className="hidden" 
-                  accept="image/*" 
+                <input
+                  type="file"
+                  multiple
+                  ref={fileInputRef}
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  accept="image/*"
                 />
 
-                {/* Drag and drop panel */}
+                {/* Drag-and-drop / click zone */}
                 <div
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
                   onClick={triggerImageUpload}
-                  className={`border-2 border-dashed rounded-[24px] p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
-                    isDragging
+                  className={`border-2 border-dashed rounded-[24px] p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all min-h-[140px] ${
+                    isUploading
+                      ? 'border-[#D4AF37]/40 bg-yellow-500/3 cursor-not-allowed'
+                      : isDragging
                       ? 'border-[#D4AF37] bg-yellow-500/5'
                       : 'border-slate-200 dark:border-white/10 hover:border-[#D4AF37] dark:hover:border-[#D4AF37]'
                   }`}
                 >
                   {isUploading ? (
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="w-8 h-8 rounded-full border-4 border-[#D4AF37]/20 border-t-[#D4AF37] animate-spin" />
-                      <p className="text-xs text-slate-500 dark:text-slate-400">Uploading image to Supabase Storage...</p>
-                    </div>
+                    <CircularProgress progress={uploadProgress} size={72} />
                   ) : (
                     <>
                       <UploadCloud className="w-10 h-10 text-slate-400 dark:text-slate-600 mb-3" />
@@ -322,17 +479,59 @@ export default function PropertyFormModal({
                   )}
                 </div>
 
+                {/* Upload error feedback */}
+                <AnimatePresence>
+                  {uploadError && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      className="flex items-start gap-2 px-4 py-3 rounded-xl bg-red-500/8 border border-red-500/20 text-red-500"
+                    >
+                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <p className="text-[10px] font-bold uppercase tracking-wider leading-relaxed">
+                        {uploadError}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setUploadError(null)}
+                        className="ml-auto p-0.5 text-red-400 hover:text-red-600 shrink-0"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 {/* Thumbnail Previews */}
                 {images.length > 0 && (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mt-4">
                     {images.map((url, index) => (
-                      <div
+                      <motion.div
                         key={`${url}-${index}`}
-                        className="relative rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 overflow-hidden group h-24"
+                        layout
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="relative rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 overflow-hidden group h-24"
                       >
-                        <img src={url} alt={`Preview ${index}`} className="w-full h-full object-cover" />
-                        
-                        {/* Remove Image Overlay */}
+                        <img
+                          src={url}
+                          alt={`Preview ${index}`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // If image fails to load, show a placeholder
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+
+                        {/* First image badge */}
+                        {index === 0 && (
+                          <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-[#D4AF37] text-white text-[7px] font-mono font-bold uppercase tracking-widest shadow">
+                            Cover
+                          </div>
+                        )}
+
+                        {/* Hover overlay with controls */}
                         <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 p-1">
                           <button
                             type="button"
@@ -367,209 +566,62 @@ export default function PropertyFormModal({
                             <ChevronRight className="w-3.5 h-3.5" />
                           </button>
                         </div>
-                      </div>
+                      </motion.div>
                     ))}
                   </div>
                 )}
               </div>
 
-              {/* Property Info Block */}
+              {/* ── Property Info Block ───────────────────────────────────── */}
               <div className="space-y-6">
                 <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500">
-                  {t.personalInfo}
+                  Property Details
                 </h4>
 
-                {/* Form fields layout */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Title */}
-                  <div className="md:col-span-2">
-                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500 mb-1.5">
-                      {t.title} *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      placeholder="e.g. Luxurious 4-Room Penthouse overlooking Mirabad Ave"
-                      className="w-full px-4 py-2.5 text-xs font-black uppercase tracking-wider bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#D4AF37] dark:text-white"
-                    />
-                  </div>
-
-                  {/* Description */}
-                  <div className="md:col-span-2">
-                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500 mb-1.5">
-                      {t.description}
-                    </label>
-                    <textarea
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      rows={3}
-                      placeholder="Detailed property specifications, materials, amenities, surrounding location elements..."
-                      className="w-full px-4 py-2.5 text-xs bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#D4AF37] dark:text-white"
-                    />
-                  </div>
-
                   {/* Price */}
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500 mb-1.5">
                       {t.price} *
                     </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="number"
-                        required
-                        value={price}
-                        onChange={(e) => setPrice(e.target.value === '' ? '' : Number(e.target.value))}
-                        placeholder="e.g. 150000"
-                        className="flex-1 px-4 py-2.5 text-xs font-black uppercase tracking-wider bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#D4AF37] dark:text-white"
-                      />
-                      <select
-                        value={currency}
-                        onChange={(e) => setCurrency(e.target.value as CurrencyType)}
-                        className="px-3 py-2 text-xs font-black uppercase tracking-wider bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl dark:text-gray-300 cursor-pointer focus:outline-none"
-                      >
-                        <option value="USD">USD ($)</option>
-                        <option value="UZS">UZS (сум)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Property Type */}
-                  <div>
-                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500 mb-1.5">
-                      {t.propertyType}
-                    </label>
-                    <select
-                      value={propertyType}
-                      onChange={(e) => setPropertyType(e.target.value)}
-                      className="w-full px-4 py-2.5 text-xs font-black uppercase tracking-wider bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl dark:text-gray-300 cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#D4AF37]"
-                    >
-                      <option value="Apartment">Apartment</option>
-                      <option value="House">House</option>
-                      <option value="Villa">Villa</option>
-                      <option value="Penthouse">Penthouse</option>
-                      <option value="Townhouse">Townhouse</option>
-                      <option value="Office">Office</option>
-                    </select>
-                  </div>
-
-                  {/* City & District */}
-                  <div>
-                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500 mb-1.5">
-                      {t.city}
-                    </label>
                     <input
-                      type="text"
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                      className="w-full px-4 py-2.5 text-xs font-black uppercase tracking-wider bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#D4AF37] dark:text-white"
+                      type="number"
+                      required
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value === '' ? '' : Number(e.target.value))}
+                      className="w-full px-4 py-2.5 text-xs font-black uppercase tracking-wider bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl focus:outline-none dark:text-white"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500 mb-1.5">
-                      {t.district}
-                    </label>
-                    <select
-                      value={district}
-                      onChange={(e) => setDistrict(e.target.value)}
-                      className="w-full px-4 py-2.5 text-xs font-black uppercase tracking-wider bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl dark:text-gray-300 cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#D4AF37]"
-                    >
-                      <option value="Mirabad">Mirabad</option>
-                      <option value="Yunusabad">Yunusabad</option>
-                      <option value="Yakkasaray">Yakkasaray</option>
-                      <option value="Chilanzar">Chilanzar</option>
-                      <option value="Almazar">Almazar</option>
-                      <option value="Shaykhantahur">Shaykhantahur</option>
-                      <option value="Mirzo Ulugbek">Mirzo Ulugbek</option>
-                      <option value="Yashnabad">Yashnabad</option>
-                    </select>
-                  </div>
-
-                  {/* Full Address */}
+                  {/* Address */}
                   <div className="md:col-span-2">
                     <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500 mb-1.5">
-                      {t.fullAddress}
+                      {t.fullAddress} *
                     </label>
                     <input
                       type="text"
+                      required
                       value={fullAddress}
                       onChange={(e) => setFullAddress(e.target.value)}
-                      placeholder="Street, block, house/apartment number details"
-                      className="w-full px-4 py-2.5 text-xs font-black uppercase tracking-wider bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#D4AF37] dark:text-white"
+                      className="w-full px-4 py-2.5 text-xs font-black uppercase tracking-wider bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl focus:outline-none dark:text-white"
                     />
                   </div>
 
-                  {/* Maps link */}
-                  <div className="md:col-span-2">
-                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500 mb-1.5 flex items-center gap-1.5">
-                      <Link className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{t.googleMapsLink}</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={googleMapsLink}
-                      onChange={(e) => setGoogleMapsLink(e.target.value)}
-                      placeholder="https://maps.google.com/?q=..."
-                      className="w-full px-4 py-2.5 text-xs font-black uppercase tracking-wider bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#D4AF37] dark:text-white"
-                    />
-                  </div>
-
-                  {/* Rooms & Bathrooms */}
+                  {/* Rooms */}
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500 mb-1.5">
-                      {t.rooms}
-                    </label>
-                    <input
-                      type="number"
-                      value={rooms}
-                      onChange={(e) => setRooms(Number(e.target.value))}
-                      className="w-full px-4 py-2.5 text-xs font-black uppercase tracking-wider bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#D4AF37] dark:text-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500 mb-1.5">
-                      {t.bathrooms}
-                    </label>
-                    <input
-                      type="number"
-                      value={bathrooms}
-                      onChange={(e) => setBathrooms(Number(e.target.value))}
-                      className="w-full px-4 py-2.5 text-xs font-black uppercase tracking-wider bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#D4AF37] dark:text-white"
-                    />
-                  </div>
-
-                  {/* Area */}
-                  <div>
-                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500 mb-1.5">
-                      {t.area} *
+                      {t.rooms} *
                     </label>
                     <input
                       type="number"
                       required
-                      value={area}
-                      onChange={(e) => setArea(e.target.value === '' ? '' : Number(e.target.value))}
-                      placeholder="e.g. 120"
-                      className="w-full px-4 py-2.5 text-xs font-black uppercase tracking-wider bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#D4AF37] dark:text-white"
+                      value={rooms}
+                      onChange={(e) => setRooms(e.target.value === '' ? '' : Number(e.target.value))}
+                      className="w-full px-4 py-2.5 text-xs font-black uppercase tracking-wider bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl focus:outline-none dark:text-white"
                     />
                   </div>
 
-                  {/* Year */}
-                  <div>
-                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500 mb-1.5">
-                      {t.constructionYear}
-                    </label>
-                    <input
-                      type="number"
-                      value={constructionYear}
-                      onChange={(e) => setConstructionYear(Number(e.target.value))}
-                      className="w-full px-4 py-2.5 text-xs font-black uppercase tracking-wider bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#D4AF37] dark:text-white"
-                    />
-                  </div>
-
-                  {/* Floors */}
+                  {/* Floor & Total Floors */}
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500 mb-1.5">
                       {t.floor}
@@ -577,11 +629,10 @@ export default function PropertyFormModal({
                     <input
                       type="number"
                       value={floor}
-                      onChange={(e) => setFloor(Number(e.target.value))}
-                      className="w-full px-4 py-2.5 text-xs font-black uppercase tracking-wider bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#D4AF37] dark:text-white"
+                      onChange={(e) => setFloor(e.target.value === '' ? '' : Number(e.target.value))}
+                      className="w-full px-4 py-2.5 text-xs font-black uppercase tracking-wider bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl focus:outline-none dark:text-white"
                     />
                   </div>
-
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500 mb-1.5">
                       {t.totalFloors}
@@ -589,132 +640,77 @@ export default function PropertyFormModal({
                     <input
                       type="number"
                       value={totalFloors}
-                      onChange={(e) => setTotalFloors(Number(e.target.value))}
-                      className="w-full px-4 py-2.5 text-xs font-black uppercase tracking-wider bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#D4AF37] dark:text-white"
+                      onChange={(e) => setTotalFloors(e.target.value === '' ? '' : Number(e.target.value))}
+                      className="w-full px-4 py-2.5 text-xs font-black uppercase tracking-wider bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl focus:outline-none dark:text-white"
                     />
                   </div>
 
-                  {/* Phone & Telegram */}
-                  <div>
-                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500 mb-1.5 flex items-center gap-1.5">
-                      <Phone className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{t.phoneNumber}</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
-                      className="w-full px-4 py-2.5 text-xs font-black uppercase tracking-wider bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#D4AF37] dark:text-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500 mb-1.5 flex items-center gap-1.5">
-                      <Send className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{t.telegram}</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={telegramUsername}
-                      onChange={(e) => setTelegramUsername(e.target.value)}
-                      className="w-full px-4 py-2.5 text-xs font-black uppercase tracking-wider bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#D4AF37] dark:text-white"
-                    />
-                  </div>
-
-                  {/* Status Selection */}
-                  <div>
+                  {/* Features Tag Input */}
+                  <div className="md:col-span-2">
                     <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500 mb-1.5">
-                      {t.status}
+                      Property Features
                     </label>
-                    <select
-                      value={status}
-                      onChange={(e) => setStatus(e.target.value)}
-                      className="w-full px-4 py-2.5 text-xs font-black uppercase tracking-wider bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl dark:text-gray-300 cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#D4AF37]"
-                    >
-                      <option value="Active">{t.active}</option>
-                      {mode === 'sale' ? (
-                        <option value="Sold">{t.sold}</option>
-                      ) : (
-                        <option value="Rented">{t.rented}</option>
-                      )}
-                      <option value="Hidden">{t.hidden}</option>
-                    </select>
-                  </div>
-
-                  {/* Toggles */}
-                  <div className="flex flex-col gap-4 justify-center md:pt-4">
-                    {/* Parking toggle */}
-                    <label className="flex items-center gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={parking}
-                        onChange={(e) => setParking(e.target.checked)}
-                        className="w-4 h-4 rounded border-slate-300 dark:border-white/10 text-[#D4AF37] focus:ring-[#D4AF37]/50"
-                      />
-                      <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-gray-300">
-                        {parking ? 'Parking available' : 'No Parking'}
-                      </span>
-                    </label>
-
-                    {/* Furniture toggle */}
-                    <label className="flex items-center gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={furniture}
-                        onChange={(e) => setFurniture(e.target.checked)}
-                        className="w-4 h-4 rounded border-slate-300 dark:border-white/10 text-[#D4AF37] focus:ring-[#D4AF37]/50"
-                      />
-                      <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-gray-300">
-                        {furniture ? 'Fully Furnished' : 'Unfurnished'}
-                      </span>
-                    </label>
-                  </div>
-
-                  {/* Featured property toggle */}
-                  <div className="md:col-span-2 border-t border-slate-100 dark:border-white/10 pt-4 mt-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-start gap-2.5">
-                        <Sparkles className="w-4.5 h-4.5 text-[#D4AF37] mt-0.5" />
-                        <div>
-                          <span className="block text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white">
-                            {t.featured}
-                          </span>
-                          <span className="text-[10px] text-slate-400 dark:text-gray-500 block mt-0.5 font-medium italic lowercase">
-                            {t.featuredToggle}
-                          </span>
+                    <div className="w-full p-2 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl focus-within:ring-1 focus-within:ring-[#D4AF37] transition-all flex flex-wrap gap-2 items-center">
+                      {features.map((tag, idx) => (
+                        <div key={idx} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#D4AF37]/10 text-[#D4AF37] rounded-lg text-xs font-bold uppercase tracking-wider">
+                          <span>{tag}</span>
+                          <button
+                            type="button"
+                            onClick={() => setFeatures(prev => prev.filter((_, i) => i !== idx))}
+                            className="p-0.5 hover:bg-[#D4AF37]/20 rounded-md transition-colors"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
                         </div>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={isFeatured}
-                          onChange={(e) => setIsFeatured(e.target.checked)}
-                          className="sr-only peer"
-                        />
-                        <div className="w-9 h-5 bg-slate-200 dark:bg-white/10 rounded-full peer peer-focus:ring-2 peer-focus:ring-[#D4AF37]/20 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#D4AF37]" />
-                      </label>
+                      ))}
+                      <input
+                        type="text"
+                        value={featureInput}
+                        onChange={(e) => setFeatureInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === ',' || e.key === 'Enter') {
+                            e.preventDefault();
+                            const val = featureInput.trim().replace(/,$/, '');
+                            if (val && !features.includes(val)) {
+                              setFeatures(prev => [...prev, val]);
+                            }
+                            setFeatureInput('');
+                          }
+                        }}
+                        placeholder={features.length === 0 ? "e.g. Garage, Balcony," : ""}
+                        className="flex-1 min-w-[120px] px-2 py-1 bg-transparent text-xs font-black uppercase tracking-wider focus:outline-none dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                      />
                     </div>
+                    <p className="text-[10px] text-slate-400 dark:text-gray-500 mt-1.5">Press comma (,) or Enter to add a tag</p>
                   </div>
                 </div>
               </div>
             </form>
 
             {/* Bottom Buttons */}
-            <div className="p-6 border-t border-slate-100 dark:border-white/10 bg-slate-50/10 dark:bg-transparent flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-5 py-2.5 text-xs font-black uppercase tracking-wider text-slate-500 hover:text-slate-800 dark:text-gray-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-all cursor-pointer"
-              >
-                {t.cancel}
-              </button>
-              <button
-                type="button"
-                onClick={handleSubmit}
-                className="px-5 py-2.5 text-xs font-black uppercase tracking-wider text-slate-950 bg-[#D4AF37] hover:bg-[#AA823E] rounded-xl shadow-lg shadow-yellow-500/10 transition-all cursor-pointer"
-              >
-                {editingProperty ? t.saveChanges : t.publish}
-              </button>
+            <div className="p-6 border-t border-slate-100 dark:border-white/10 bg-slate-50/10 dark:bg-transparent flex items-center justify-between gap-3">
+              {/* Image count indicator */}
+              <span className="text-[10px] font-mono text-slate-400 dark:text-gray-500 uppercase tracking-wider">
+                {images.length} {images.length === 1 ? 'image' : 'images'} attached
+              </span>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-5 py-2.5 text-xs font-black uppercase tracking-wider text-slate-500 hover:text-slate-800 dark:text-gray-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-all cursor-pointer"
+                >
+                  {t.cancel}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={isUploading}
+                  className="px-5 py-2.5 text-xs font-black uppercase tracking-wider text-slate-950 bg-[#D4AF37] hover:bg-[#AA823E] rounded-xl shadow-lg shadow-yellow-500/10 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isUploading ? 'Uploading…' : editingProperty ? t.saveChanges : t.publish}
+                </button>
+              </div>
             </div>
           </motion.div>
         </>
