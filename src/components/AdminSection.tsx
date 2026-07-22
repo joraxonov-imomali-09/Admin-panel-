@@ -22,7 +22,6 @@ import { AdminUser, AdminRole, LanguageType } from '../types';
 import { i18n } from '../i18n';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../lib/supabase';
-import { createClient } from '@supabase/supabase-js';
 
 interface AdminSectionProps {
   lang: LanguageType;
@@ -105,31 +104,7 @@ export default function AdminSection({
         } : a)));
         triggerToast(t.adminUpdated, 'success');
       } else {
-        // Build the redirect URL for the invitation email
-        const siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
-        const redirectTo = `${siteUrl}/auth/callback`;
-
-        const tempSupabase = createClient(
-          import.meta.env.VITE_SUPABASE_URL,
-          import.meta.env.VITE_SUPABASE_ANON_KEY,
-          { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
-        );
-
-        const { data: authData, error: authError } = await tempSupabase.auth.signUp({
-          email: inviteEmail,
-          password: passwordToUse,
-          options: {
-            emailRedirectTo: redirectTo,
-            data: {
-              name: inviteName,
-              role: inviteRole,
-            }
-          }
-        });
-
-        if (authError) throw authError;
-
-        const userId = authData.user?.id || `admin-${Date.now()}`;
+        const userId = `admin-${Date.now()}`;
 
         const newAdmin: AdminUser = {
           id: userId,
@@ -139,8 +114,8 @@ export default function AdminSection({
           role: inviteRole,
           avatarUrl: '',
           bio: inviteBio || 'Corporate real estate team member.',
-          status: 'Pending',
-          lastActive: t.pending,
+          status: 'Active',
+          lastActive: 'Just now',
         };
 
         const { error: dbError } = await supabase
@@ -162,7 +137,7 @@ export default function AdminSection({
         }
 
         setAdmins((prev) => [...prev, newAdmin]);
-        triggerToast(`${t.invitationSentTo} ${inviteEmail}! ${t.accountCreated}`, 'success');
+        triggerToast(`${inviteName} added to admins!`, 'success');
       }
 
       setInviteName('');

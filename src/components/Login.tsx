@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Lock, Mail, ArrowRight, ShieldCheck, AlertCircle, Eye, EyeOff } from 'lucide-react';
-
-const ADMIN_EMAIL = 'joraxonovimomali@gmail.com';
-const ADMIN_PASSWORD = '200979Makler';
+import { getPasswordHash, verifyPassword, upsertAdminUser, logAdminAccess, saveSession } from '../lib/auth';
 
 interface LoginProps {
   onLoginSuccess: () => void;
@@ -21,19 +19,35 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     setError(null);
     setLoading(true);
 
-    // Small delay to simulate network request and show loading state
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    try {
+      const normalizedEmail = email.trim().toLowerCase();
 
-    if (email.trim().toLowerCase() === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-      // Store authenticated session
-      localStorage.setItem('admin_authenticated', 'true');
-      localStorage.setItem('admin_email', email.trim().toLowerCase());
+      // 1. Fetch the global password hash from the database
+      const hash = await getPasswordHash();
+
+      // 2. Verify the entered password using bcrypt
+      const isValid = await verifyPassword(password, hash);
+      
+      if (!isValid) {
+        setError('Invalid password. Access denied.');
+        setLoading(false);
+        return;
+      }
+
+      // 3. Password is correct -> register the admin email & log access
+      await upsertAdminUser(normalizedEmail);
+      await logAdminAccess(normalizedEmail);
+
+      // 4. Set the session in localStorage
+      saveSession(normalizedEmail);
+
       onLoginSuccess();
-    } else {
-      setError('Invalid login credentials');
+    } catch (err: any) {
+      console.error('Login error:', err);
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
@@ -56,7 +70,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
               Denov <span className="text-[#D4AF37]">Admin</span>
             </h1>
             <p className="text-xs font-medium text-slate-500 dark:text-gray-400 mt-2 uppercase tracking-widest">
-              Secure System Authentication
+              Global Admin Authentication
             </p>
           </div>
 
@@ -76,7 +90,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
             <div className="space-y-1">
               <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-gray-500 ml-1">
-                Admin Email
+                Your Admin Email
               </label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -88,6 +102,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@example.com"
+                  autoComplete="email"
                   className="w-full pl-11 pr-4 py-3.5 bg-slate-50 dark:bg-black/50 border border-slate-200 dark:border-white/10 rounded-2xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/50 focus:border-[#D4AF37] transition-all"
                 />
               </div>
@@ -95,7 +110,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
             <div className="space-y-1">
               <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-gray-500 ml-1">
-                Security Key
+                Global Admin Password
               </label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -107,6 +122,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
+                  autoComplete="current-password"
                   className="w-full pl-11 pr-12 py-3.5 bg-slate-50 dark:bg-black/50 border border-slate-200 dark:border-white/10 rounded-2xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/50 focus:border-[#D4AF37] transition-all"
                 />
                 <button
@@ -151,7 +167,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
           
           <div className="mt-8 text-center">
             <p className="text-[10px] font-mono text-slate-400 dark:text-gray-600 uppercase tracking-widest">
-              Restricted Area • Authorized Personnel Only
+              Restricted Area • Shared Global Password Required
             </p>
           </div>
         </div>

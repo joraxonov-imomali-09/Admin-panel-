@@ -23,8 +23,9 @@ import PropertyFormModal from './components/PropertyFormModal';
 import AdminSection from './components/AdminSection';
 import Toast, { ToastMessage } from './components/Toast';
 import Login from './components/Login';
-import AuthCallback from './components/AuthCallback';
 import { supabase } from './lib/supabase';
+import { isSessionValid, clearSession } from './lib/auth';
+import ChangePassword from './components/ChangePassword';
 
 import {
   initialSalesProperties,
@@ -61,14 +62,7 @@ import {
 
 export default function App() {
   // Auth State
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return localStorage.getItem('admin_authenticated') === 'true';
-  });
-
-  // Check if we're on the auth callback route
-  const isAuthCallback = window.location.pathname === '/auth/callback' ||
-    window.location.hash.includes('access_token') ||
-    new URLSearchParams(window.location.search).has('token_hash');
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(isSessionValid());
 
   // Global States
   const [lang, setLang] = useState<LanguageType>('en');
@@ -127,8 +121,7 @@ export default function App() {
   // Handle logout event from Navbar or other components
   useEffect(() => {
     const handleLogout = () => {
-      localStorage.removeItem('admin_authenticated');
-      localStorage.removeItem('admin_email');
+      clearSession();
       setIsAuthenticated(false);
     };
 
@@ -573,20 +566,6 @@ export default function App() {
     }
   };
 
-  // Render AuthCallback page if on that route
-  if (isAuthCallback && !isAuthenticated) {
-    return (
-      <AuthCallback
-        lang={lang}
-        onActivationSuccess={() => {
-          setIsAuthenticated(true);
-          // Clean URL
-          window.history.replaceState({}, '', '/');
-        }}
-      />
-    );
-  }
-
   if (!isAuthenticated) {
     return <Login onLoginSuccess={() => setIsAuthenticated(true)} />;
   }
@@ -989,6 +968,9 @@ export default function App() {
           {/* SETTINGS PAGE */}
           {activeTab === 'settings' && (
             <div className="space-y-6 sm:space-y-8 animate-fade-in font-sans max-w-2xl">
+              {/* Change Password Component */}
+              <ChangePassword lang={lang} triggerToast={triggerToast} />
+
               {/* Language, Theme settings */}
               <div className="p-5 sm:p-6 rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111827] shadow-xl space-y-6">
                 <h3 className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">
