@@ -245,6 +245,18 @@ export const i18n = {
     activationFailed: 'Activation failed',
     invalidLink: 'The invitation link is invalid or has expired.',
     goToLogin: 'Go to Login',
+
+    // Remove Admin Confirmation
+    removeAdminTitle: 'Remove Administrator',
+    removeAdminWarning: 'This action cannot be undone.',
+    removeAdminConfirm1: 'Are you sure you want to remove',
+    removeAdminConfirm2: 'They will immediately lose access to the admin panel and all their sessions will be terminated.',
+    removing: 'Removing...',
+    remove: 'Remove',
+
+    // Sign Out Other Admins
+    signOutOtherAdmins: 'Sign out all other administrators',
+    signOutOtherAdminsDesc: 'Force every other logged-in administrator to sign in again with the new password.',
   },
   uz: {
     dashboard: 'Boshqaruv Paneli',
@@ -485,6 +497,18 @@ export const i18n = {
     activationFailed: 'Faollashtirish muvaffaqiyatsiz yakunlandi',
     invalidLink: 'Taklif havolasi yaroqsiz yoki muddati tugagan.',
     goToLogin: 'Kirishga Oʻtish',
+
+    // Remove Admin Confirmation
+    removeAdminTitle: 'Adminni Oʻchirish',
+    removeAdminWarning: 'Bu amalni ortga qaytarib boʻlmaydi.',
+    removeAdminConfirm1: 'Siz rostdan ham oʻchirishni xohlaysizmi',
+    removeAdminConfirm2: 'Ular darhol boshqaruv paneliga kirish huquqini yoʻqotadi va barcha ularning sessiyalari tugatiladi.',
+    removing: 'Oʻchirilmoqda...',
+    remove: 'Oʻchirish',
+
+    // Sign Out Other Admins
+    signOutOtherAdmins: 'Boshqa barcha administratorlarni chiqarish',
+    signOutOtherAdminsDesc: 'Boshqa barcha tizimga kirgan administratorlarni yangi parol bilan qayta kirish uchun majbur qiling.',
   },
   ru: {
     dashboard: 'Панель Управления',
@@ -725,5 +749,17 @@ export const i18n = {
     activationFailed: 'Ошибка активации',
     invalidLink: 'Ссылка для приглашения недействительна или устарела.',
     goToLogin: 'Перейти к Входу',
+
+    // Remove Admin Confirmation
+    removeAdminTitle: 'Удалить Администратора',
+    removeAdminWarning: 'Это действие невозможно отменить.',
+    removeAdminConfirm1: 'Вы уверены, что хотите удалить',
+    removeAdminConfirm2: 'Они немедленно потеряют доступ к панели администратора и все их сеансы будут прервыны.',
+    removing: 'Удаление...',
+    remove: 'Удалить',
+
+    // Sign Out Other Admins
+    signOutOtherAdmins: 'Выйти всем остальным администраторам',
+    signOutOtherAdminsDesc: 'Заставьте всех остальных вошедших администраторов повторно войти с новым паролем.',
   }
 };
