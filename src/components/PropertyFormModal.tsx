@@ -154,6 +154,7 @@ export default function PropertyFormModal({
   const [price, setPrice] = useState<number | ''>('');
   const [currency, setCurrency] = useState<CurrencyType>('USD');
   const [fullAddress, setFullAddress] = useState('');
+  const [area, setArea] = useState<string>('');
   const [rooms, setRooms] = useState<number | ''>('');
   const [floor, setFloor] = useState<number | ''>('');
   const [totalFloors, setTotalFloors] = useState<number | ''>('');
@@ -173,6 +174,8 @@ export default function PropertyFormModal({
       setPrice(editingProperty.price || '');
       setCurrency(editingProperty.currency || 'USD');
       setFullAddress(editingProperty.fullAddress || '');
+      // Area may be numeric in existing properties — preserve formatting
+      setArea(typeof editingProperty.area === 'number' ? String(editingProperty.area) : (editingProperty.area || ''));
       setRooms(editingProperty.rooms || '');
       setFloor(editingProperty.floor || '');
       setTotalFloors(editingProperty.totalFloors || '');
@@ -182,6 +185,7 @@ export default function PropertyFormModal({
       // Reset to defaults
       setPrice('');
       setFullAddress('');
+      setArea('');
       setRooms('');
       setFloor('');
       setTotalFloors('');
@@ -353,6 +357,19 @@ export default function PropertyFormModal({
       return;
     }
 
+    // Validate area: allow inputs like "120", "120 m²", "1,000 m²" etc.
+    const parseArea = (raw: string) => {
+      if (!raw) return NaN;
+      const cleaned = raw.replace(/\s|m|²|\u00B2|sqm/gi, '').replace(/,/g, '');
+      return Number(parseFloat(cleaned));
+    };
+
+    const parsedArea = parseArea(area);
+    if (!area || Number.isNaN(parsedArea) || parsedArea <= 0) {
+      triggerToast('Please provide a valid Property Area (e.g. 120 m²).', 'alert');
+      return;
+    }
+
     if (mode === 'rent' && (!floor || !totalFloors)) {
       triggerToast('Please provide Floor and Total Floors for apartments.', 'alert');
       return;
@@ -376,7 +393,7 @@ export default function PropertyFormModal({
       propertyType: mode === 'rent' ? 'Apartment' : 'House',
       rooms: Number(rooms),
       bathrooms: 1,
-      area: 0,
+      area: parsedArea,
       floor: Number(floor) || 0,
       totalFloors: Number(totalFloors) || 0,
       parking: false,
@@ -634,6 +651,21 @@ export default function PropertyFormModal({
                       required
                       value={rooms}
                       onChange={(e) => setRooms(e.target.value === '' ? '' : Number(e.target.value))}
+                      className="w-full px-4 py-2.5 text-xs font-black uppercase tracking-wider bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl focus:outline-none dark:text-white"
+                    />
+                  </div>
+
+                  {/* Area */}
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500 mb-1.5">
+                      {t.area} *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={area}
+                      onChange={(e) => setArea(e.target.value)}
+                      placeholder="e.g. 120 m²"
                       className="w-full px-4 py-2.5 text-xs font-black uppercase tracking-wider bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl focus:outline-none dark:text-white"
                     />
                   </div>

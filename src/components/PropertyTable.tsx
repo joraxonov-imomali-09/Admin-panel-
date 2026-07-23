@@ -16,6 +16,7 @@ import {
   ExternalLink,
   Plus,
   XCircle,
+  Sparkle,
 } from 'lucide-react';
 import { Property, RentalProperty, LanguageType, CurrencyType } from '../types';
 import { i18n } from '../i18n';
@@ -317,6 +318,10 @@ export default function PropertyTable({
                         </div>
                         <div className="text-[10px] text-slate-400 dark:text-gray-500 truncate mt-1">
                           {prop.propertyType} • {prop.city}, {prop.district}
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Sparkle className="w-4 h-4 text-[#D4AF37] shrink-0" />
+                          <span className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-tight">{prop.area} m²</span>
                         </div>
                       </td>
 

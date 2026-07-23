@@ -785,6 +785,10 @@ export default function App() {
                               <span className="text-[10px] text-slate-400 dark:text-gray-500 block mt-0.5 font-medium truncate">
                                 {post.city}, {post.district} • {post.propertyType}
                               </span>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Sparkle className="w-3.5 h-3.5 text-[#D4AF37]" />
+                                <span className="text-[10px] text-slate-400 dark:text-gray-400 font-black uppercase">{post.area} m²</span>
+                              </div>
                             </div>
                           </div>
 
