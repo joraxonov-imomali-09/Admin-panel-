@@ -210,7 +210,7 @@ export default function AdminSection({
         </div>
 
         <div className="p-4 sm:p-5 rounded-2xl border border-slate-100 dark:border-white/5 bg-white dark:bg-[#0F0F0F] flex items-center gap-4 shadow-xl">
-          <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/10 text-[#D4AF37] flex items-center justify-center shrink-0">
             <ShieldCheck className="w-5 h-5" />
           </div>
           <div>
@@ -284,7 +284,7 @@ export default function AdminSection({
                         isOwner
                           ? 'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-200/50 dark:border-yellow-500/10'
                           : admin.role === 'Administrator'
-                          ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200/50 dark:border-blue-500/10'
+                          ? 'bg-[#D4AF37]/10 dark:bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/20'
                           : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-500/10'
                       }`}
                     >

@@ -152,6 +152,7 @@ export default function PropertyFormModal({
 
   // Form Fields
   const [price, setPrice] = useState<number | ''>('');
+  const [currency, setCurrency] = useState<CurrencyType>('USD');
   const [fullAddress, setFullAddress] = useState('');
   const [rooms, setRooms] = useState<number | ''>('');
   const [floor, setFloor] = useState<number | ''>('');
@@ -170,6 +171,7 @@ export default function PropertyFormModal({
   useEffect(() => {
     if (editingProperty) {
       setPrice(editingProperty.price || '');
+      setCurrency(editingProperty.currency || 'USD');
       setFullAddress(editingProperty.fullAddress || '');
       setRooms(editingProperty.rooms || '');
       setFloor(editingProperty.floor || '');
@@ -366,7 +368,7 @@ export default function PropertyFormModal({
       title: fullAddress, // fallback for title
       description: '',
       price: Number(price),
-      currency: 'USD' as any,
+      currency,
       city: 'Tashkent', // fallback
       district: 'Tashkent', // fallback
       fullAddress,
@@ -580,17 +582,32 @@ export default function PropertyFormModal({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Price */}
-                  <div>
+                  <div className="space-y-3">
                     <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500 mb-1.5">
                       {t.price} *
                     </label>
-                    <input
-                      type="number"
-                      required
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value === '' ? '' : Number(e.target.value))}
-                      className="w-full px-4 py-2.5 text-xs font-black uppercase tracking-wider bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl focus:outline-none dark:text-white"
-                    />
+                    <div className="grid grid-cols-1 sm:grid-cols-[1.8fr_1fr] gap-3">
+                      <input
+                        type="number"
+                        required
+                        value={price}
+                        onChange={(e) => setPrice(e.target.value === '' ? '' : Number(e.target.value))}
+                        className="w-full px-4 py-2.5 text-xs font-black uppercase tracking-wider bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl focus:outline-none dark:text-white"
+                      />
+                      <div>
+                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500 mb-1.5">
+                          {t.currency}
+                        </label>
+                        <select
+                          value={currency}
+                          onChange={(e) => setCurrency(e.target.value as CurrencyType)}
+                          className="w-full px-4 py-2.5 text-xs font-black uppercase tracking-wider bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl focus:outline-none dark:text-white"
+                        >
+                          <option value="USD">USD ($)</option>
+                          <option value="UZS">UZS (So'm)</option>
+                        </select>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Address */}

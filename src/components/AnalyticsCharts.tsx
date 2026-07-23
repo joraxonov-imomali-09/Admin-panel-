@@ -44,7 +44,7 @@ export default function AnalyticsCharts({
   const statusData = [
     { name: t.active, value: activeCount, color: '#D4AF37' },
     { name: t.sold, value: soldCount, color: '#10B981' },
-    { name: t.totalRentals, value: rentalCount, color: '#3B82F6' },
+    { name: t.totalRentals, value: rentalCount, color: '#047857' },
   ];
 
   return (
@@ -96,8 +96,8 @@ export default function AnalyticsCharts({
                   <stop offset="95%" stopColor="#D4AF37" stopOpacity={0.0} />
                 </linearGradient>
                 <linearGradient id="colorRentals" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.2} />
-                  <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.0} />
+                  <stop offset="5%" stopColor="#047857" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="#047857" stopOpacity={0.0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" className="dark:stroke-slate-800/60" />
@@ -144,7 +144,7 @@ export default function AnalyticsCharts({
                     type="monotone"
                     dataKey="rentalViews"
                     name="Rental Views"
-                    stroke="#3B82F6"
+                    stroke="#047857"
                     strokeWidth={2.5}
                     fillOpacity={1}
                     fill="url(#colorRentals)"

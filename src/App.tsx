@@ -700,10 +700,10 @@ export default function App() {
                       {activePropertiesCombined}
                     </h3>
                   </div>
-                  <div className="mt-3 flex items-center text-xs text-blue-500 font-bold z-10">
+                  <div className="mt-3 flex items-center text-xs text-[#D4AF37] font-bold z-10">
                     <span className="text-slate-400 dark:text-gray-600 font-medium lowercase italic text-[10px]">{t.liveDatabaseNode}</span>
                   </div>
-                  <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl group-hover:scale-110 transition-transform duration-500"></div>
+                  <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-[#D4AF37]/5 rounded-full blur-2xl group-hover:scale-110 transition-transform duration-500"></div>
                 </div>
 
                 {/* Sold units */}
@@ -1071,7 +1071,7 @@ export default function App() {
                 {/* Appearance */}
                 <div className="flex items-center justify-between py-3 gap-4">
                   <div className="flex items-center gap-3 min-w-0">
-                    <Shield className="w-5 h-5 text-indigo-400 shrink-0" />
+                    <Shield className="w-5 h-5 text-[#D4AF37] shrink-0" />
                     <div className="min-w-0">
                       <span className="block text-xs font-semibold text-slate-800 dark:text-slate-200">{t.theme}</span>
                       <span className="text-[10px] text-slate-400 hidden sm:block">{t.darkModePalette}</span>

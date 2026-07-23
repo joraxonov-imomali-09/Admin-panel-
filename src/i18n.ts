@@ -146,7 +146,7 @@ export const i18n = {
 
     // Change Password Missing Keys
     passwordsDoNotMatch: 'Passwords do not match',
-    passwordTooShort: 'Password must be at least 6 characters',
+    passwordTooShort: 'Password must be at least 8 characters',
     invalidCurrentPassword: 'Invalid current password',
     passwordUpdated: 'Password updated successfully!',
     changeGlobalPassword: 'Change Global Password',
@@ -386,7 +386,7 @@ export const i18n = {
 
     // Change Password Missing Keys
     passwordsDoNotMatch: 'Parollar mos kelmadi',
-    passwordTooShort: 'Parol kamida 6 ta belgidan iborat boʻlishi kerak',
+    passwordTooShort: 'Parol kamida 8 ta belgidan iborat boʻlishi kerak',
     invalidCurrentPassword: 'Hozirgi parol notoʻgʻri',
     passwordUpdated: 'Parol muvaffaqiyatli yangilandi!',
     changeGlobalPassword: 'Global Parolni Oʻzgartirish',
@@ -626,7 +626,7 @@ export const i18n = {
 
     // Change Password Missing Keys
     passwordsDoNotMatch: 'Пароли не совпадают',
-    passwordTooShort: 'Пароль должен содержать минимум 6 символов',
+    passwordTooShort: 'Пароль должен содержать минимум 8 символов',
     invalidCurrentPassword: 'Неверный текущий пароль',
     passwordUpdated: 'Пароль успешно обновлён!',
     changeGlobalPassword: 'Сменить Глобальный Пароль',

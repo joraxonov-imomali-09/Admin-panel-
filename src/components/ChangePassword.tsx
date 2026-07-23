@@ -26,8 +26,8 @@ export default function ChangePassword({ lang, triggerToast }: ChangePasswordPro
       return;
     }
 
-    if (newPassword.length < 6) {
-      setError(t.passwordTooShort || 'Password must be at least 6 characters.');
+    if (newPassword.length < 8) {
+      setError(t.passwordTooShort || 'Password must be at least 8 characters.');
       return;
     }
 

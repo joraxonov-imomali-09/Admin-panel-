@@ -154,7 +154,7 @@ export default function Navbar({
             className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 text-slate-600 hover:text-[#D4AF37] dark:text-slate-300 dark:hover:text-yellow-400 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
           >
             {theme === 'light' && <Sun className="w-4 h-4 text-[#D4AF37]" />}
-            {theme === 'dark' && <Moon className="w-4 h-4 text-indigo-400" />}
+            {theme === 'dark' && <Moon className="w-4 h-4 text-[#D4AF37]" />}
             {theme === 'system' && <Laptop className="w-4 h-4" />}
           </button>
 
@@ -173,8 +173,8 @@ export default function Navbar({
                     {t.appearance}
                   </div>
                   {[
-                    { id: 'light', label: t.light, icon: Sun, color: 'text-[#D4AF37]' },
-                    { id: 'dark', label: t.dark, icon: Moon, color: 'text-indigo-400' },
+                    { id: 'light', label: t.light, icon: Sun, color: 'text-[#065f46]' },
+                    { id: 'dark', label: t.dark, icon: Moon, color: 'text-[#D4AF37]' },
                     { id: 'system', label: t.system, icon: Laptop, color: 'text-slate-500' },
                   ].map((item) => {
                     const Icon = item.icon;
@@ -263,7 +263,7 @@ export default function Navbar({
                             {n.type === 'success' ? (
                               <Sparkles className="w-4 h-4 text-[#D4AF37]" />
                             ) : (
-                              <AlertCircle className="w-4 h-4 text-blue-400" />
+                              <AlertCircle className="w-4 h-4 text-[#D4AF37]" />
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
