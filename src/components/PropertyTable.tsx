@@ -16,11 +16,11 @@ import {
   ExternalLink,
   Plus,
   XCircle,
-  Sparkle,
 } from 'lucide-react';
 import { Property, RentalProperty, LanguageType, CurrencyType } from '../types';
 import { i18n } from '../i18n';
 import { motion, AnimatePresence } from 'motion/react';
+import { formatPrice } from '../lib/currency';
 
 interface PropertyTableProps {
   lang: LanguageType;
@@ -114,13 +114,7 @@ export default function PropertyTable({
     return processedProperties.slice(start, start + itemsPerPage);
   }, [processedProperties, currentPage]);
 
-  const formatPrice = (price: number, currency: CurrencyType) => {
-    if (currency === 'USD') {
-      return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(price);
-    } else {
-      return new Intl.NumberFormat('uz-UZ', { style: 'decimal', maximumFractionDigits: 0 }).format(price) + ' UZS';
-    }
-  };
+
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString(lang === 'uz' ? 'uz-UZ' : lang === 'ru' ? 'ru-RU' : 'en-US', {
@@ -131,9 +125,9 @@ export default function PropertyTable({
   };
 
   return (
-    <div className="bg-white dark:bg-[#0F0F0F] border border-slate-100 dark:border-white/5 rounded-[32px] shadow-2xl overflow-hidden">
+    <div className="bg-white dark:bg-[#0F0F0F] border border-slate-100 dark:border-white/5 rounded-[32px] shadow-2xl overflow-hidden flex flex-col">
       {/* Table Action Controls */}
-      <div className="p-4 sm:p-6 md:p-8 border-b border-slate-100 dark:border-white/10 bg-slate-50/10 dark:bg-transparent flex flex-col gap-4">
+      <div className="p-3 sm:p-4 md:p-6 lg:p-8 border-b border-slate-100 dark:border-white/10 bg-slate-50/10 dark:bg-transparent flex flex-col gap-3 sm:gap-4">
         {/* Search */}
         <div className="relative w-full">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -215,18 +209,18 @@ export default function PropertyTable({
         </div>
       </div>
 
-      {/* Scrollable Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[640px] text-left border-collapse">
+      {/* Scrollable Table Container — horizontal scroll only on mobile if needed */}
+      <div className="overflow-x-auto flex-1">
+        <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-slate-100 dark:border-white/10 bg-slate-50/30 dark:bg-[#1A1A1A]/40">
-              <th className="px-4 sm:px-6 py-4 text-[10px] font-black font-sans uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500">{t.thumbnail}</th>
-              <th className="px-4 sm:px-6 py-4 text-[10px] font-black font-sans uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500">{t.name}</th>
-              <th className="px-4 sm:px-6 py-4 text-[10px] font-black font-sans uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500">{t.price}</th>
-              <th className="px-4 sm:px-6 py-4 text-[10px] font-black font-sans uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500">{t.status}</th>
-              <th className="px-4 sm:px-6 py-4 text-[10px] font-black font-sans uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500">{t.views}</th>
-              <th className="hidden lg:table-cell px-4 sm:px-6 py-4 text-[10px] font-black font-sans uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500">{t.createdDate}</th>
-              <th className="px-4 sm:px-6 py-4 text-[10px] font-black font-sans uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500 text-right">{t.actions}</th>
+              <th className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-[9px] sm:text-[10px] font-black font-sans uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500 whitespace-nowrap">{t.thumbnail}</th>
+              <th className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-[9px] sm:text-[10px] font-black font-sans uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500 whitespace-nowrap">{t.name}</th>
+              <th className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-[9px] sm:text-[10px] font-black font-sans uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500 whitespace-nowrap">{t.price}</th>
+              <th className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-[9px] sm:text-[10px] font-black font-sans uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500 whitespace-nowrap">{t.status}</th>
+              <th className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-[9px] sm:text-[10px] font-black font-sans uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500 whitespace-nowrap">{t.views}</th>
+              <th className="hidden lg:table-cell px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-[9px] sm:text-[10px] font-black font-sans uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500 whitespace-nowrap">{t.createdDate}</th>
+              <th className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-[9px] sm:text-[10px] font-black font-sans uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500 text-right whitespace-nowrap">{t.actions}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-white/5">
@@ -234,16 +228,16 @@ export default function PropertyTable({
               {isLoading ? (
                 Array.from({ length: 4 }).map((_, idx) => (
                   <tr key={`skel-${idx}`} className="animate-pulse">
-                    <td className="px-4 sm:px-6 py-4"><div className="w-16 h-12 bg-slate-200 dark:bg-slate-800 rounded-lg" /></td>
-                    <td className="px-4 sm:px-6 py-4">
-                      <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-36 sm:w-48 mb-2" />
-                      <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-20 sm:w-24" />
+                    <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4"><div className="w-12 sm:w-14 h-9 sm:h-10 bg-slate-200 dark:bg-slate-800 rounded-lg" /></td>
+                    <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4">
+                      <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-24 sm:w-32 mb-2" />
+                      <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-16 sm:w-20" />
                     </td>
-                    <td className="px-4 sm:px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-16 sm:w-20" /></td>
-                    <td className="px-4 sm:px-6 py-4"><div className="h-6 bg-slate-200 dark:bg-slate-800 rounded-full w-14 sm:w-16" /></td>
-                    <td className="px-4 sm:px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-10 sm:w-12" /></td>
-                    <td className="hidden lg:table-cell px-4 sm:px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-16 sm:w-20" /></td>
-                    <td className="px-4 sm:px-6 py-4 text-right"><div className="h-8 bg-slate-200 dark:bg-slate-800 rounded-lg w-20 sm:w-24 ml-auto" /></td>
+                    <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4"><div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-12 sm:w-16" /></td>
+                    <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4"><div className="h-6 bg-slate-200 dark:bg-slate-800 rounded-full w-12 sm:w-14" /></td>
+                    <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4"><div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-8 sm:w-10" /></td>
+                    <td className="hidden lg:table-cell px-3 sm:px-4 md:px-6 py-3 sm:py-4"><div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-12 sm:w-16" /></td>
+                    <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-right"><div className="h-8 bg-slate-200 dark:bg-slate-800 rounded-lg w-16 sm:w-20 ml-auto" /></td>
                   </tr>
                 ))
               ) : paginatedItems.length === 0 ? (
@@ -295,8 +289,8 @@ export default function PropertyTable({
                       className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors group font-sans"
                     >
                       {/* Thumbnail */}
-                      <td className="px-4 sm:px-6 py-3.5">
-                        <div className="relative w-14 sm:w-16 h-10 sm:h-12 rounded-lg overflow-hidden border border-slate-100 dark:border-slate-800 bg-slate-100">
+                      <td className="px-3 sm:px-4 md:px-6 py-2.5 sm:py-3.5">
+                        <div className="relative w-12 sm:w-14 md:w-16 h-9 sm:h-11 md:h-12 rounded-lg overflow-hidden border border-slate-100 dark:border-slate-800 bg-slate-100">
                           <img
                             src={prop.images[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=150&q=80'}
                             alt={prop.title}
@@ -312,30 +306,26 @@ export default function PropertyTable({
                       </td>
 
                       {/* Title & Location */}
-                      <td className="px-4 sm:px-6 py-4 max-w-[160px] sm:max-w-xs">
+                      <td className="px-3 sm:px-4 md:px-6 py-2.5 sm:py-3.5 max-w-[120px] sm:max-w-xs md:max-w-sm">
                         <div className="font-black text-xs text-slate-900 dark:text-white truncate uppercase tracking-tight group-hover:text-[#D4AF37] transition-colors">
                           {prop.title}
                         </div>
-                        <div className="text-[10px] text-slate-400 dark:text-gray-500 truncate mt-1">
+                        <div className="text-[9px] sm:text-[10px] text-slate-400 dark:text-gray-500 truncate mt-1">
                           {prop.propertyType} • {prop.city}, {prop.district}
-                        </div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Sparkle className="w-4 h-4 text-[#D4AF37] shrink-0" />
-                          <span className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-tight">{prop.area} m²</span>
                         </div>
                       </td>
 
                       {/* Price */}
-                      <td className="px-4 sm:px-6 py-4">
+                      <td className="px-3 sm:px-4 md:px-6 py-2.5 sm:py-3.5">
                         <span className="text-xs font-black font-mono text-slate-900 dark:text-white whitespace-nowrap">
                           {formatPrice(prop.price, prop.currency)}
                         </span>
                       </td>
 
                       {/* Status Badge — translated */}
-                      <td className="px-4 sm:px-6 py-4">
+                      <td className="px-3 sm:px-4 md:px-6 py-2.5 sm:py-3.5">
                         <span
-                          className={`inline-flex items-center px-2 sm:px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider whitespace-nowrap ${
+                          className={`inline-flex items-center px-2 sm:px-2.5 py-1 rounded-md text-[8px] sm:text-[9px] font-black uppercase tracking-wider whitespace-nowrap ${
                             prop.status === 'Active'
                               ? 'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-200/50 dark:border-yellow-500/10'
                               : isSold || isRented
@@ -348,64 +338,64 @@ export default function PropertyTable({
                       </td>
 
                       {/* Views */}
-                      <td className="px-4 sm:px-6 py-3.5">
+                      <td className="px-3 sm:px-4 md:px-6 py-2.5 sm:py-3.5">
                         <span className="text-xs font-mono text-slate-600 dark:text-slate-400 font-medium">
                           {prop.views.toLocaleString()}
                         </span>
                       </td>
 
                       {/* Created Date — hidden on tablet */}
-                      <td className="hidden lg:table-cell px-4 sm:px-6 py-3.5">
+                      <td className="hidden lg:table-cell px-3 sm:px-4 md:px-6 py-2.5 sm:py-3.5">
                         <span className="text-[11px] font-mono text-slate-400">
                           {formatDate(prop.createdDate)}
                         </span>
                       </td>
 
                       {/* Actions */}
-                      <td className="px-4 sm:px-6 py-3.5 text-right">
-                        <div className="flex items-center justify-end gap-0.5 sm:gap-1">
+                      <td className="px-2 sm:px-4 md:px-6 py-2.5 sm:py-3.5 text-right">
+                        <div className="flex items-center justify-end gap-0.5 sm:gap-1 flex-wrap">
                           <button
                             onClick={() => onPreview(prop)}
                             title={t.preview}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                            className="p-1 sm:p-1.5 rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
                           >
-                            <ExternalLink className="w-3.5 h-3.5" />
+                            <ExternalLink className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
                           </button>
 
                           <button
                             onClick={() => onDuplicate(prop)}
                             title={t.duplicate}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-[#D4AF37] hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                            className="p-1 sm:p-1.5 rounded-lg text-slate-400 hover:text-[#D4AF37] hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
                           >
-                            <Copy className="w-3.5 h-3.5" />
+                            <Copy className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
                           </button>
 
                           <button
                             onClick={() => onHide(prop.id)}
                             title={isHidden ? t.unhideListing : t.hide}
-                            className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                            className={`p-1 sm:p-1.5 rounded-lg transition-all cursor-pointer ${
                               isHidden
                                 ? 'text-[#D4AF37] bg-yellow-50 dark:bg-yellow-500/5'
                                 : 'text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
                             }`}
                           >
-                            {isHidden ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                            {isHidden ? <Eye className="w-3 sm:w-3.5 h-3 sm:h-3.5" /> : <EyeOff className="w-3 sm:w-3.5 h-3 sm:h-3.5" />}
                           </button>
 
                           <button
                             onClick={() => onEdit(prop)}
                             title={t.edit}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-[#D4AF37] hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                            className="p-1 sm:p-1.5 rounded-lg text-slate-400 hover:text-[#D4AF37] hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
                           >
-                            <Edit3 className="w-3.5 h-3.5" />
+                            <Edit3 className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
                           </button>
 
                           <button
                             onClick={() => onDelete(prop.id)}
                             title={t.delete}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all cursor-pointer"
+                            className="p-1 sm:p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all cursor-pointer"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
                           </button>
                         </div>
                       </td>
@@ -420,9 +410,9 @@ export default function PropertyTable({
 
       {/* Pagination Footer */}
       {!isLoading && processedProperties.length > 0 && (
-        <div className="px-4 sm:px-8 py-4 sm:py-5 border-t border-slate-100 dark:border-white/10 bg-slate-50/10 dark:bg-[#0A0A0A]/40 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-gray-500 font-sans text-center sm:text-left">
-            {t.showing}{' '}
+        <div className="px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 md:py-5 border-t border-slate-100 dark:border-white/10 bg-slate-50/10 dark:bg-[#0A0A0A]/40 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
+          <div className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-gray-500 font-sans text-center sm:text-left whitespace-nowrap">
+            <span className="hidden sm:inline">{t.showing}{' '}
             <span className="text-slate-900 dark:text-white">{(currentPage - 1) * itemsPerPage + 1}</span>
             {' '}{t.to}{' '}
             <span className="text-slate-900 dark:text-white">
@@ -430,22 +420,20 @@ export default function PropertyTable({
             </span>
             {' '}{t.of}{' '}
             <span className="text-slate-900 dark:text-white">{processedProperties.length}</span>
-            {' '}{t.properties}
+            {' '}{t.properties}</span>
+            <span className="sm:hidden text-slate-900 dark:text-white">{currentPage} / {totalPages}</span>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-1 sm:gap-1.5">
             <button
               onClick={() => setCurrentPage((c) => Math.max(c - 1, 1))}
               disabled={currentPage === 1}
-              className="p-1.5 rounded-lg border border-slate-100 dark:border-white/10 text-slate-400 hover:text-slate-800 dark:hover:text-white disabled:opacity-30 hover:bg-slate-50 dark:hover:bg-white/5 transition-all cursor-pointer"
+              className="p-1 sm:p-1.5 rounded-lg border border-slate-100 dark:border-white/10 text-slate-400 hover:text-slate-800 dark:hover:text-white disabled:opacity-30 hover:bg-slate-50 dark:hover:bg-white/5 transition-all cursor-pointer"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
             </button>
 
             {/* On mobile: show only current/total; on desktop: show all page buttons */}
-            <span className="sm:hidden text-xs font-black text-slate-700 dark:text-slate-300 px-2">
-              {currentPage} / {totalPages}
-            </span>
             <div className="hidden sm:flex items-center gap-1">
               {Array.from({ length: totalPages }).map((_, idx) => (
                 <button
@@ -465,9 +453,9 @@ export default function PropertyTable({
             <button
               onClick={() => setCurrentPage((c) => Math.min(c + 1, totalPages))}
               disabled={currentPage === totalPages}
-              className="p-1.5 rounded-lg border border-slate-100 dark:border-white/10 text-slate-400 hover:text-slate-800 dark:hover:text-white disabled:opacity-30 hover:bg-slate-50 dark:hover:bg-white/5 transition-all cursor-pointer"
+              className="p-1 sm:p-1.5 rounded-lg border border-slate-100 dark:border-white/10 text-slate-400 hover:text-slate-800 dark:hover:text-white disabled:opacity-30 hover:bg-slate-50 dark:hover:bg-white/5 transition-all cursor-pointer"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
             </button>
           </div>
         </div>

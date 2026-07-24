@@ -124,7 +124,7 @@ CREATE TABLE IF NOT EXISTS public.properties (
   property_type      TEXT        NOT NULL DEFAULT 'Apartment',
   rooms              INTEGER     NOT NULL DEFAULT 2,
   bathrooms          INTEGER     NOT NULL DEFAULT 1,
-  area               NUMERIC     NOT NULL DEFAULT 0,           -- sq metres
+  area               NUMERIC     DEFAULT NULL,                -- sq metres (optional)
   floor              INTEGER     NOT NULL DEFAULT 1,
   total_floors       INTEGER     NOT NULL DEFAULT 1,
   parking            BOOLEAN     NOT NULL DEFAULT false,
@@ -137,7 +137,7 @@ CREATE TABLE IF NOT EXISTS public.properties (
   images             JSONB       NOT NULL DEFAULT '[]',        -- array of public storage URLs
   views              INTEGER     NOT NULL DEFAULT 0,
   features           JSONB       NOT NULL DEFAULT '[]',        -- array of tags
-  category           TEXT        NOT NULL DEFAULT 'house',      -- 'house' | 'apartment'
+  category           TEXT        NOT NULL,      -- 'house' | 'apartment'
   created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at         TIMESTAMPTZ NOT NULL DEFAULT now()
 );

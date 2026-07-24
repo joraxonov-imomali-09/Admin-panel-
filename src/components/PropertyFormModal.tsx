@@ -21,6 +21,7 @@ import {
 import { Property, RentalProperty, LanguageType, CurrencyType, PropertyStatus, RentalStatus } from '../types';
 import { i18n } from '../i18n';
 import { supabase } from '../lib/supabase';
+import { getCurrencyLabel } from '../lib/currency';
 
 interface PropertyFormModalProps {
   lang: LanguageType;
@@ -154,7 +155,6 @@ export default function PropertyFormModal({
   const [price, setPrice] = useState<number | ''>('');
   const [currency, setCurrency] = useState<CurrencyType>('USD');
   const [fullAddress, setFullAddress] = useState('');
-  const [area, setArea] = useState<string>('');
   const [rooms, setRooms] = useState<number | ''>('');
   const [floor, setFloor] = useState<number | ''>('');
   const [totalFloors, setTotalFloors] = useState<number | ''>('');
@@ -174,8 +174,6 @@ export default function PropertyFormModal({
       setPrice(editingProperty.price || '');
       setCurrency(editingProperty.currency || 'USD');
       setFullAddress(editingProperty.fullAddress || '');
-      // Area may be numeric in existing properties — preserve formatting
-      setArea(typeof editingProperty.area === 'number' ? String(editingProperty.area) : (editingProperty.area || ''));
       setRooms(editingProperty.rooms || '');
       setFloor(editingProperty.floor || '');
       setTotalFloors(editingProperty.totalFloors || '');
@@ -185,7 +183,6 @@ export default function PropertyFormModal({
       // Reset to defaults
       setPrice('');
       setFullAddress('');
-      setArea('');
       setRooms('');
       setFloor('');
       setTotalFloors('');
@@ -352,21 +349,10 @@ export default function PropertyFormModal({
   // Submit Handler
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!price || !fullAddress || !rooms) {
+    
+    // Validate required fields (area is NOT required)
+    if (!price || !fullAddress || rooms === '' || rooms === 0) {
       triggerToast(t.fillRequiredFields || 'Please fill in all required fields.', 'alert');
-      return;
-    }
-
-    // Validate area: allow inputs like "120", "120 m²", "1,000 m²" etc.
-    const parseArea = (raw: string) => {
-      if (!raw) return NaN;
-      const cleaned = raw.replace(/\s|m|²|\u00B2|sqm/gi, '').replace(/,/g, '');
-      return Number(parseFloat(cleaned));
-    };
-
-    const parsedArea = parseArea(area);
-    if (!area || Number.isNaN(parsedArea) || parsedArea <= 0) {
-      triggerToast('Please provide a valid Property Area (e.g. 120 m²).', 'alert');
       return;
     }
 
@@ -382,18 +368,16 @@ export default function PropertyFormModal({
 
     const finalData = {
       id: editingProperty?.id || `prop-${mode}-${Date.now()}`,
-      title: fullAddress, // fallback for title
+      title: fullAddress,
       description: '',
       price: Number(price),
       currency,
-      city: 'Tashkent', // fallback
-      district: 'Tashkent', // fallback
+      city: 'Tashkent',
+      district: 'Tashkent',
       fullAddress,
       googleMapsLink: '',
-      propertyType: mode === 'rent' ? 'Apartment' : 'House',
       rooms: Number(rooms),
       bathrooms: 1,
-      area: parsedArea,
       floor: Number(floor) || 0,
       totalFloors: Number(totalFloors) || 0,
       parking: false,
@@ -407,6 +391,7 @@ export default function PropertyFormModal({
       features: features,
       views: editingProperty?.views || 0,
       createdDate: editingProperty?.createdDate || new Date().toISOString(),
+      // Note: do not include duplicate category fields; `category` is set by the admin panel save handler.
     };
 
     onSave(finalData);
@@ -524,14 +509,14 @@ export default function PropertyFormModal({
 
                 {/* Thumbnail Previews */}
                 {images.length > 0 && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mt-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 mt-4">
                     {images.map((url, index) => (
                       <motion.div
                         key={`${url}-${index}`}
                         layout
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="relative rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 overflow-hidden group h-24"
+                        className="relative rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 overflow-hidden group aspect-square"
                       >
                         <img
                           src={url}
@@ -620,8 +605,8 @@ export default function PropertyFormModal({
                           onChange={(e) => setCurrency(e.target.value as CurrencyType)}
                           className="w-full px-4 py-2.5 text-xs font-black uppercase tracking-wider bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl focus:outline-none dark:text-white"
                         >
-                          <option value="USD">USD ($)</option>
-                          <option value="UZS">UZS (So'm)</option>
+                          <option value="USD">{getCurrencyLabel('USD')}</option>
+                          <option value="UZS">{getCurrencyLabel('UZS')}</option>
                         </select>
                       </div>
                     </div>
@@ -655,20 +640,6 @@ export default function PropertyFormModal({
                     />
                   </div>
 
-                  {/* Area */}
-                  <div>
-                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500 mb-1.5">
-                      {t.area} *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={area}
-                      onChange={(e) => setArea(e.target.value)}
-                      placeholder="e.g. 120 m²"
-                      className="w-full px-4 py-2.5 text-xs font-black uppercase tracking-wider bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl focus:outline-none dark:text-white"
-                    />
-                  </div>
 
                   {/* Floor & Total Floors */}
                   <div>

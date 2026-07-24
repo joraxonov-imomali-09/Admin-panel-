@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS public.properties (
   property_type      TEXT        NOT NULL DEFAULT 'Apartment',
   rooms              INTEGER     NOT NULL DEFAULT 2,
   bathrooms          INTEGER     NOT NULL DEFAULT 1,
-  area               NUMERIC     NOT NULL DEFAULT 0,
+  area               NUMERIC     DEFAULT NULL,
   floor              INTEGER     NOT NULL DEFAULT 1,
   total_floors       INTEGER     NOT NULL DEFAULT 1,
   parking            BOOLEAN     NOT NULL DEFAULT false,
@@ -58,7 +58,7 @@ ALTER TABLE IF EXISTS public.properties
 ALTER TABLE IF EXISTS public.properties
   ADD COLUMN IF NOT EXISTS bathrooms INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE IF EXISTS public.properties
-  ADD COLUMN IF NOT EXISTS area NUMERIC NOT NULL DEFAULT 0;
+  ADD COLUMN IF NOT EXISTS area NUMERIC DEFAULT NULL;
 ALTER TABLE IF EXISTS public.properties
   ADD COLUMN IF NOT EXISTS floor INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE IF EXISTS public.properties
@@ -92,12 +92,18 @@ ALTER TABLE IF EXISTS public.properties
 ALTER TABLE IF EXISTS public.properties
   ADD COLUMN IF NOT EXISTS createdDate TIMESTAMPTZ NOT NULL DEFAULT now();
 
--- 3) Ensure indexes exist for performance on common property queries.
+-- 3) Explicitly alter the area column to be nullable (in case it exists as NOT NULL).
+-- This handles the case where the table already exists with NOT NULL constraint.
+ALTER TABLE IF EXISTS public.properties
+  ALTER COLUMN area DROP NOT NULL,
+  ALTER COLUMN area SET DEFAULT NULL;
+
+-- 4) Ensure indexes exist for performance on common property queries.
 CREATE INDEX IF NOT EXISTS properties_category_idx ON public.properties (category);
 CREATE INDEX IF NOT EXISTS properties_status_idx ON public.properties (status);
 CREATE INDEX IF NOT EXISTS properties_created_at_idx ON public.properties (created_at DESC);
 
--- 4) Ensure storage buckets exist for the frontend upload flow.
+-- 5) Ensure storage buckets exist for the frontend upload flow.
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES
   ('uylar', 'uylar', true, 10485760, ARRAY['image/jpeg','image/jpg','image/png','image/webp','image/gif']),

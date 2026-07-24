@@ -25,6 +25,7 @@ import Toast, { ToastMessage } from './components/Toast';
 import Login from './components/Login';
 import { supabase } from './lib/supabase';
 import { isSessionValid, clearSession } from './lib/auth';
+import { formatPrice } from './lib/currency';
 import ChangePassword from './components/ChangePassword';
 
 import {
@@ -42,7 +43,6 @@ import {
   Key,
   TrendingUp,
   Plus,
-  Sparkles,
   Phone,
   Send,
   Building2,
@@ -55,7 +55,6 @@ import {
   Bell,
   Activity,
   ChevronRight,
-  Sparkle,
   Lock,
   X,
 } from 'lucide-react';
@@ -214,10 +213,10 @@ export default function App() {
                 district: item.district || '',
                 fullAddress: item.fullAddress || item.full_address || '',
                 googleMapsLink: item.googleMapsLink || item.google_maps_link || '',
-                propertyType: item.propertyType || item.property_type || 'Apartment',
+                // Display-only: derive from canonical `category` field
+                propertyType: item.category === 'apartment' ? 'Apartment' : 'House',
                 rooms: Number(item.rooms) || 0,
                 bathrooms: Number(item.bathrooms) || 0,
-                area: Number(item.area) || 0,
                 floor: Number(item.floor) || 0,
                 totalFloors: Number(item.totalFloors || item.total_floors) || 0,
                 parking: Boolean(item.parking),
@@ -238,7 +237,7 @@ export default function App() {
                   ? JSON.parse(item.features)
                   : [],
                 views: Number(item.views) || 0,
-                category: item.category || 'house',
+                category: item.category,
                 createdDate: item.createdDate || item.created_at || new Date().toISOString(),
               };
 
@@ -291,6 +290,7 @@ export default function App() {
     try {
       const isNew = String(formData.id).startsWith('prop-');
       const { id, ...dataToSave } = formData;
+      // Single canonical category field — derive for creates from the active admin tab.
       const category = activeTab === 'rent' ? 'apartment' : 'house';
 
       // Map camelCase to snake_case for Supabase
@@ -302,11 +302,9 @@ export default function App() {
         city: dataToSave.city,
         district: dataToSave.district,
         full_address: dataToSave.fullAddress,
-        google_maps_link: dataToSave.googleMapsLink,
-        property_type: dataToSave.propertyType,
+        // NOTE: Do not write any duplicate category fields (e.g. property_type).
         rooms: dataToSave.rooms,
         bathrooms: dataToSave.bathrooms,
-        area: dataToSave.area,
         floor: dataToSave.floor,
         total_floors: dataToSave.totalFloors,
         parking: dataToSave.parking,
@@ -334,9 +332,12 @@ export default function App() {
         if (error) throw error;
         dbResult = data;
       } else {
+        // For updates: do NOT modify `category` implicitly. Only update other fields.
+        const { category: _c, ...updatePayload } = dbPayload as any;
+
         const { data, error } = await supabase
           .from('properties')
-          .update(dbPayload)
+          .update(updatePayload)
           .eq('id', id)
           .select()
           .single();
@@ -356,10 +357,10 @@ export default function App() {
         district: dbResult.district || '',
         fullAddress: dbResult.full_address || '',
         googleMapsLink: dbResult.google_maps_link || '',
-        propertyType: dbResult.property_type || 'Apartment',
+        // Display-only propertyType derived from canonical `category`
+        propertyType: dbResult.category === 'apartment' ? 'Apartment' : 'House',
         rooms: Number(dbResult.rooms) || 0,
         bathrooms: Number(dbResult.bathrooms) || 0,
-        area: Number(dbResult.area) || 0,
         floor: Number(dbResult.floor) || 0,
         totalFloors: Number(dbResult.total_floors) || 0,
         parking: Boolean(dbResult.parking),
@@ -372,7 +373,7 @@ export default function App() {
         images: Array.isArray(dbResult.images) ? dbResult.images : [],
         features: Array.isArray(dbResult.features) ? dbResult.features : [],
         views: Number(dbResult.views) || 0,
-        category: dbResult.category || 'house',
+        category: dbResult.category,
         createdDate: dbResult.created_at || new Date().toISOString(),
       };
 
@@ -527,14 +528,6 @@ export default function App() {
     } catch (err: any) {
       console.error('Duplicate property error:', err);
       triggerToast(`${t.failedDuplicate}: ${err.message}`, 'alert');
-    }
-  };
-
-  const formatPrice = (price: number, currency: CurrencyType) => {
-    if (currency === 'USD') {
-      return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(price);
-    } else {
-      return new Intl.NumberFormat('uz-UZ', { style: 'decimal', maximumFractionDigits: 0 }).format(price) + ' UZS';
     }
   };
 
@@ -785,10 +778,6 @@ export default function App() {
                               <span className="text-[10px] text-slate-400 dark:text-gray-500 block mt-0.5 font-medium truncate">
                                 {post.city}, {post.district} • {post.propertyType}
                               </span>
-                              <div className="flex items-center gap-2 mt-1">
-                                <Sparkle className="w-3.5 h-3.5 text-[#D4AF37]" />
-                                <span className="text-[10px] text-slate-400 dark:text-gray-400 font-black uppercase">{post.area} m²</span>
-                              </div>
                             </div>
                           </div>
 
@@ -1250,10 +1239,6 @@ export default function App() {
                     <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                       <Layers className="w-4 h-4 text-[#D4AF37] shrink-0" />
                       <span>{previewProperty.rooms} {t.roomsBath} {previewProperty.bathrooms}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-                      <Sparkle className="w-4 h-4 text-[#D4AF37] shrink-0" />
-                      <span>{previewProperty.area} {t.squareMeters}</span>
                     </div>
                     <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                       <Building2 className="w-4 h-4 text-[#D4AF37] shrink-0" />

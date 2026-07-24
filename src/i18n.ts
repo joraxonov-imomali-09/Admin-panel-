@@ -50,7 +50,6 @@ export const i18n = {
     propertyType: 'Property Type',
     rooms: 'Rooms',
     bathrooms: 'Bathrooms',
-    area: 'Area (sq.m)',
     floor: 'Floor',
     totalFloors: 'Total Floors',
     parking: 'Parking Included',
@@ -209,7 +208,6 @@ export const i18n = {
     // Preview Modal
     databaseNodeRef: 'Database Node Ref:',
     roomsBath: 'Rooms • Bath',
-    squareMeters: 'Square Meters',
     floorOf: 'Floor',
     builtIn: 'Built in',
     noDescription: 'No detailed description provided for this listing.',
@@ -302,7 +300,6 @@ export const i18n = {
     propertyType: 'Mulk Turi',
     rooms: 'Xonalar Soni',
     bathrooms: 'Yuvinish Xonalari',
-    area: 'Maydoni (kv.m)',
     floor: 'Qavat',
     totalFloors: 'Umumiy Qavatlar',
     parking: 'Avtoturargoh Mavjud',
@@ -461,7 +458,6 @@ export const i18n = {
     // Preview Modal
     databaseNodeRef: 'Maʼlumotlar Bazasi Ref:',
     roomsBath: 'Xona • Hammom',
-    squareMeters: 'Kvadrat Metr',
     floorOf: 'Qavat',
     builtIn: 'Qurilgan yili',
     noDescription: 'Bu roʻyxat uchun batafsil tavsif taqdim etilmagan.',
@@ -554,7 +550,6 @@ export const i18n = {
     propertyType: 'Тип Недвижимости',
     rooms: 'Количество Комнат',
     bathrooms: 'Ванные Комнаты',
-    area: 'Площадь (кв.м)',
     floor: 'Этаж',
     totalFloors: 'Всего Этажей',
     parking: 'Есть парковка',
@@ -713,7 +708,6 @@ export const i18n = {
     // Preview Modal
     databaseNodeRef: 'Ссылка на узел БД:',
     roomsBath: 'Комнаты • Ванных',
-    squareMeters: 'Квадратных Метров',
     floorOf: 'Этаж',
     builtIn: 'Год постройки',
     noDescription: 'Для этого объявления не указано подробное описание.',

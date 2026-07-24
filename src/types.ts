@@ -20,7 +20,6 @@ export interface Property {
   propertyType: string; // e.g., Apartment, House, Villa, Townhouse
   rooms: number;
   bathrooms: number;
-  area: number; // in square meters
   floor: number;
   totalFloors: number;
   parking: boolean;
@@ -52,7 +51,6 @@ export interface RentalProperty {
   propertyType: string;
   rooms: number;
   bathrooms: number;
-  area: number;
   floor: number;
   totalFloors: number;
   parking: boolean;
